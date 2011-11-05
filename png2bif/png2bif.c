@@ -34,11 +34,13 @@ static FILE     *biffile;
 static FILE     *pngfile;
 static bif      *gbif;
 static bitmap_t *image;
+static pixel_t  nocolor = {0, 0, 0, 0};
 
 static void     errout(int status, char *str);
 static void     cleanup(void);
 static void     handle_args(int argc, char **argv);
 static void     init(void);
+static bifcolor *color_in_bif(bif *bifstruct, pixel_t *color);
 static void     write_bif(bif *bifstruct, FILE *biff);
 static void     bitmap_to_bif(bif *bifstruct, bitmap_t *bitmap);
 static void     read_png(bitmap_t *bitmap, FILE *png);
@@ -88,6 +90,17 @@ static void init(void) {
     errout(-1, "Error allocating bif structure");
 }
 
+static bifcolor *color_in_bif(bif *bifstruct, pixel_t *color) {
+  unsigned int i;
+  for(i = 0; i < bifstruct->numcolors; ++i) {
+    bifcolor *pixel = &bifstruct->colors[i];
+    if(pixel->color.red == color->red && pixel->color.green == color->green &&
+       pixel->color.blue == color->blue && pixel->color.alpha == color->alpha)
+      return pixel;
+  }
+  return NULL;
+}
+
 static void write_bif(bif *bifstruct, FILE *biff) {
   if(!(bifstruct && biff))
     errout(-1, "bif file not accessible or bif struct not allocated");
@@ -115,15 +128,27 @@ static void bitmap_to_bif(bif *bifstruct, bitmap_t *bitmap) {
   if(!(bitmap && bifstruct))
     errout(-1, "No bif data to convert from or image data uninitialized");
   unsigned int i;
+  char tempnum[256];
 
   bifstruct->width = bitmap->width;
   bifstruct->height = bitmap->height;
 
-  bifstruct->data = malloc(sizeof(char *) * bifstruct->width * bifstruct->height);
+  bifstruct->data = calloc(sizeof(char *), bifstruct->width * bifstruct->height);
+  bifstruct->numcolors = 0;
   for(i = 0; i < bifstruct->width * bifstruct->height; ++i) {
-    pixel_t *pixel = &bitmap->pixels[i];
     bifstruct->data[i] = calloc(sizeof(char), 256);
-//    printf("Red: %d  Green: %d Blue: %d Alpha: %d\n", pixel->red, pixel->green, pixel->blue, pixel->alpha);
+    pixel_t *pixel = &bitmap->pixels[i];
+    bifcolor *color;
+    fflush(stdout);
+    if((color = color_in_bif(bifstruct, pixel)) == NULL) {
+      bifstruct->colors = realloc(bifstruct->colors, sizeof(bifcolor) * ++bifstruct->numcolors);
+      bifstruct->colors[bifstruct->numcolors - 1].color = *pixel;
+      sprintf(tempnum, "%d", bifstruct->numcolors);
+      color = &bifstruct->colors[bifstruct->numcolors - 1];
+      strcpy(color->name, "c");
+      strcat(color->name, tempnum);
+    }
+    strcpy(bifstruct->data[i], color->name);
   }
 }
 
