@@ -34,7 +34,6 @@ static FILE     *biffile;
 static FILE     *pngfile;
 static bif      *gbif;
 static bitmap_t *image;
-static pixel_t  nocolor = {0, 0, 0, 0};
 
 static void     errout(int status, char *str);
 static void     cleanup(void);
@@ -192,8 +191,6 @@ static void read_png(bitmap_t *bitmap, FILE *png) {
   color_type = png_get_color_type(png_ptr, info_ptr);
   bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 
-  png_read_update_info(png_ptr, info_ptr);
-
   if(setjmp(png_jmpbuf(png_ptr)))
     errout(-1, "Error reading png");
 
@@ -201,10 +198,16 @@ static void read_png(bitmap_t *bitmap, FILE *png) {
     png_set_add_alpha(png_ptr, 255, PNG_FILLER_AFTER);
   if(color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
     png_set_gray_to_rgb(png_ptr);
+  if(bit_depth == 16)
+    png_set_strip_16(png_ptr);
+  if(bit_depth < 8)
+    png_set_packing(png_ptr);
+
+  png_read_update_info(png_ptr, info_ptr);
 
   row_pointers = calloc(sizeof(png_bytep), height);
   for(y = 0; y < height; y++)
-    row_pointers[y] = calloc(sizeof(png_byte), width);
+    row_pointers[y] = malloc(png_get_rowbytes(png_ptr, info_ptr));
 
   png_read_image(png_ptr, row_pointers);
 
@@ -216,7 +219,7 @@ static void read_png(bitmap_t *bitmap, FILE *png) {
     png_bytep row;
     row = row_pointers[y];
     for(x = 0; x < width; x++) {
-      pixel_t *pixel = &bitmap->pixels[bitmap->width * y + x];
+      pixel_t *pixel = bitmap->pixels + bitmap->width * y + x;
       pixel->red = *row++;
       pixel->green = *row++;
       pixel->blue = *row++;
