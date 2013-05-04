@@ -11,8 +11,10 @@ using namespace std;
 struct color {
   public:
   int r, g, b, a;
+  string name;
 
-  color(int r, int g, int b, int a) {
+  color(string name, int r, int g, int b, int a) {
+    this->name = name;
     this->r = r;
     this->g = g;
     this->b = b;
@@ -22,8 +24,8 @@ struct color {
 
 struct bif {
   public:
-  unsigned int        width;
-  unsigned int        height;
+  size_t              width;
+  size_t              height;
   map<string, color*> colors;
   vector<color*>      data;
 
@@ -31,10 +33,14 @@ struct bif {
     this->width = width;
     this->height = height;
   }
+  bif() {
+    this->width = 0;
+    this->height = 0;
+  }
 };
 
-static void   readbif(string);
-static void   writepng(string);
+static void   readbif(string, bif*);
+static void   writepng(string, bif*);
 static void   parseargs(int, char**);
 static string tolower(string);
 
@@ -42,7 +48,7 @@ static string biffile;
 static string pngfile;
 static bif *rbif;
 
-static void readbif(string filename) {
+static void readbif(string filename, bif *rbif) {
   ifstream bifstream (filename.c_str());
   if(!bifstream.is_open()) {
     cerr << "Cannot access file " << filename << endl;
@@ -57,7 +63,8 @@ static void readbif(string filename) {
     exit(-1);
   }
 
-  rbif = new bif(width, height);
+  rbif->width = width;
+  rbif->height = height);
 
   if(!(bifstream >> tmp) || tolower(tmp) != "[colors]") {
     cerr << "File " << filename << " missing [colors] block" << endl;
@@ -85,7 +92,7 @@ static void readbif(string filename) {
       continue;
     }
 
-    rbif->colors.insert(pair<string, color*>(linearr[0], new color(stoi(linearr[1]), stoi(linearr[2]), 
+    rbif->colors.insert(pair<string, color*>(linearr[0], new color(linearr[0], stoi(linearr[1]), stoi(linearr[2]), 
                                           stoi(linearr[3]), stoi(linearr[4]))));
   }
 
@@ -117,7 +124,7 @@ static void readbif(string filename) {
 
 }
 
-static void writepng(string filename) {
+static void writepng(string filename, bif *rbif) {
   png::image<png::rgba_pixel> img(rbif->width, rbif->height);
 
   for(size_t y = 0; y < img.get_height(); ++y)
@@ -147,7 +154,8 @@ static string tolower(string str) {
 
 int main(int argc, char **argv) {
   parseargs(argc, argv);
-  readbif(biffile);
-  writepng(pngfile);
+  rbif = new bif();
+  readbif(biffile, rbif);
+  writepng(pngfile, rbif);
   return 0;
 }
