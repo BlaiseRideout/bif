@@ -64,7 +64,7 @@ static void readbif(string filename, bif *rbif) {
   }
 
   rbif->width = width;
-  rbif->height = height);
+  rbif->height = height;
 
   if(!(bifstream >> tmp) || tolower(tmp) != "[colors]") {
     cerr << "File " << filename << " missing [colors] block" << endl;
@@ -106,13 +106,18 @@ static void readbif(string filename, bif *rbif) {
     exit(-1);
   }
 
+  color *lastcolor;
   while((bifstream >> tmp) && tmp != "[/data]" && rbif->data.size() < rbif->width * rbif->height) {
-    if(rbif->colors.count(tmp) == 0) {
-      cerr << "Used undefined color " << tmp << endl;
-      exit(-1);
+    if(tmp != "`") {
+      if(rbif->colors.count(tmp) == 0) {
+        cerr << "Used undefined color " << tmp << endl;
+        exit(-1);
+      }
+
+      lastcolor = rbif->colors[tmp];
     }
 
-    rbif->data.push_back(rbif->colors[tmp]);
+    rbif->data.push_back(lastcolor);
   }
 
   if(tmp != "[/data]") {
@@ -120,7 +125,7 @@ static void readbif(string filename, bif *rbif) {
   }
 
   while(rbif->data.size() < rbif->width * rbif->height)
-    rbif->data.push_back(new color(0, 0, 0, 0));
+    rbif->data.push_back(new color("", 0, 0, 0, 0));
 
 }
 

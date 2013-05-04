@@ -64,9 +64,15 @@ static void writebif(string filename, bif *wbif) {
   bifstream << "[/colors]" << endl;
 
   bifstream << "[data]" << endl;
+  string lastname;
   for(size_t y = 0; y < wbif->height; ++y)
     for(size_t x = 0; x < wbif->width; ++x) {
-      bifstream << wbif->data[y * wbif->height + x]->name;
+      if(wbif->data[y * wbif->height + x]->name == lastname)
+        bifstream << "`";
+      else {
+        bifstream << wbif->data[y * wbif->height + x]->name;
+        lastname = wbif->data[y * wbif->height + x]->name;
+      }
       if(x == wbif->width - 1)
         bifstream << endl;
       else
@@ -84,15 +90,25 @@ static void readpng(string filename, bif* wbif) {
   wbif->height = img.get_height();
   wbif->width = img.get_width();
 
+  int lastr = -1, lastg = -1, lastb = -1, lasta = -1;
+  string lastcolorname;
   for(size_t y = 0; y < wbif->height; ++y)
     for(size_t x = 0; x < wbif->width; ++x) {
       png::rgba_pixel pcolor = img[y][x];
       string colorname;
-      for(map<string, color*>::iterator i = wbif->colors.begin(); i != wbif->colors.end(); ++i)
-        if(i->second->r == pcolor.red && i->second->g == pcolor.green && i->second->b == pcolor.blue && i->second->a == pcolor.alpha) {
-          colorname = i->first;
-          break;
-        }
+      if(pcolor.red == lastr && pcolor.green == lastg && pcolor.blue == lastb && pcolor.alpha == lasta)
+        colorname = lastcolorname;
+      else {
+        lastr = pcolor.red;
+        lastg = pcolor.green;
+        lastb = pcolor.blue;
+        lasta = pcolor.alpha;
+        for(map<string, color*>::iterator i = wbif->colors.begin(); i != wbif->colors.end(); ++i)
+          if(i->second->r == pcolor.red && i->second->g == pcolor.green && i->second->b == pcolor.blue && i->second->a == pcolor.alpha) {
+            colorname = i->first;
+            break;
+          }
+      }
 
       if(colorname.size() == 0) {
         stringstream colorstream;
@@ -102,6 +118,7 @@ static void readpng(string filename, bif* wbif) {
         wbif->colors.insert(pair<string, color*>(colorname, new color(colorname, pcolor.red, pcolor.green, pcolor.blue, pcolor.alpha)));
       }
       wbif->data.push_back(wbif->colors[colorname]);
+      lastcolorname = colorname;
     }
 }
 
