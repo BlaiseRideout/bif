@@ -1,11 +1,11 @@
-CC		= gcc
-CPPFLAGS 	:= -Wall --std=c99 --pedantic -O2 -ggdb
+CC		= g++
+CPPFLAGS 	:= -Wall --std=c++11 --pedantic -O2 -ggdb
 LDFLAGS		= -lpng
 BINNAME		= png2bif
 
 .PHONY: clean install
 
-$(BINNAME): $(BINNAME).c
+$(BINNAME): $(BINNAME).cpp
 	$(CC) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
 	
 clean:
